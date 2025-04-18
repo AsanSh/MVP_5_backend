@@ -1,3 +1,6 @@
+# Ignore all .txt files except requirements.txt
 *.txt
+!requirements.txt
+
 .env
 __pycache__/ 
