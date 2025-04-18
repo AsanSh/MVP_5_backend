@@ -26,7 +26,36 @@ logger.info("Environment variables loaded")
 try:
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "AIzaSyBovhxSsOp8OSGcHnZOcEsAlelK94YtEu8")
     genai.configure(api_key=GOOGLE_API_KEY)
-    model = genai.GenerativeModel('gemini-pro')
+    
+    # Configure the model with safety settings
+    generation_config = {
+        "temperature": 0.7,
+        "top_p": 0.8,
+        "top_k": 40
+    }
+    
+    safety_settings = [
+        {
+            "category": "HARM_CATEGORY_HARASSMENT",
+            "threshold": "BLOCK_NONE"
+        },
+        {
+            "category": "HARM_CATEGORY_HATE_SPEECH",
+            "threshold": "BLOCK_NONE"
+        },
+        {
+            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            "threshold": "BLOCK_NONE"
+        },
+        {
+            "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+            "threshold": "BLOCK_NONE"
+        }
+    ]
+    
+    model = genai.GenerativeModel(model_name="gemini-pro",
+                                generation_config=generation_config,
+                                safety_settings=safety_settings)
     logger.info("Gemini AI initialized successfully")
 except Exception as e:
     logger.error(f"Failed to initialize Gemini AI: {str(e)}")
@@ -101,7 +130,8 @@ async def analyze_pdf(file: UploadFile = File(...)):
 
 Анализ:
 """
-            response = model.generate_content(prompt + pdf_text)
+            chat = model.start_chat(history=[])
+            response = chat.send_message(prompt + pdf_text)
             logger.info(f"[{request_id}] Successfully received response from Gemini AI")
             
             result = response.text
