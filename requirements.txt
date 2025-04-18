@@ -1,6 +1,6 @@
 fastapi==0.109.2
 uvicorn==0.27.1
-openai==1.12.0
+google-generativeai==0.3.2
 pdfplumber==0.10.3
 python-dotenv==1.0.1
 python-multipart==0.0.9

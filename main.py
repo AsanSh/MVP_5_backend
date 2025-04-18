@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pdfplumber
-from openai import OpenAI
+import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 import io
@@ -22,14 +22,16 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 logger.info("Environment variables loaded")
 
-# Initialize OpenAI client
+# Initialize Gemini
 try:
-    client = OpenAI()
-    logger.info("OpenAI client initialized successfully")
+    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "AIzaSyBovhxSsOp8OSGcHnZOcEsAlelK94YtEu8")
+    genai.configure(api_key=GOOGLE_API_KEY)
+    model = genai.GenerativeModel('gemini-pro')
+    logger.info("Gemini AI initialized successfully")
 except Exception as e:
-    logger.error(f"Failed to initialize OpenAI client: {str(e)}")
+    logger.error(f"Failed to initialize Gemini AI: {str(e)}")
     logger.error(f"Traceback: {traceback.format_exc()}")
-    raise Exception("Failed to initialize OpenAI client")
+    raise Exception("Failed to initialize Gemini AI")
 
 # Initialize FastAPI
 app = FastAPI()
@@ -91,32 +93,23 @@ async def analyze_pdf(file: UploadFile = File(...)):
             logger.error(f"[{request_id}] No text could be extracted from the PDF")
             raise HTTPException(status_code=400, detail="No text could be extracted from the PDF")
 
-        # Send to OpenAI GPT
+        # Send to Gemini
         try:
-            logger.info(f"[{request_id}] Sending request to OpenAI API")
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Ты опытный врач. Расшифруй медицинский анализ, выдели важные отклонения и дай рекомендации."
-                    },
-                    {
-                        "role": "user",
-                        "content": pdf_text
-                    }
-                ],
-                temperature=0.5,
-                max_tokens=1000
-            )
-            logger.info(f"[{request_id}] Successfully received response from OpenAI API")
+            logger.info(f"[{request_id}] Sending request to Gemini AI")
             
-            result = response.choices[0].message.content
+            prompt = """Ты опытный врач. Расшифруй медицинский анализ, выдели важные отклонения и дай рекомендации.
+
+Анализ:
+"""
+            response = model.generate_content(prompt + pdf_text)
+            logger.info(f"[{request_id}] Successfully received response from Gemini AI")
+            
+            result = response.text
             logger.info(f"[{request_id}] Analysis completed successfully")
             return JSONResponse(content={"analysis": result})
             
         except Exception as e:
-            logger.error(f"[{request_id}] Error calling OpenAI API: {str(e)}")
+            logger.error(f"[{request_id}] Error calling Gemini AI: {str(e)}")
             logger.error(f"[{request_id}] Traceback: {traceback.format_exc()}")
             raise HTTPException(status_code=500, detail="Error processing the analysis")
 
