@@ -15,9 +15,6 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 # Initialize FastAPI
 app = FastAPI()
 
@@ -36,6 +33,16 @@ async def analyze_pdf(file: UploadFile = File(...)):
         # Check if file is PDF
         if not file.filename.endswith('.pdf'):
             raise HTTPException(status_code=400, detail="File must be a PDF")
+
+        # Initialize OpenAI client
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+        
+        client = OpenAI(
+            api_key=api_key,
+            timeout=60.0  # Increase timeout to 60 seconds
+        )
 
         contents = await file.read()
         pdf_text = ""
