@@ -63,7 +63,13 @@ except Exception as e:
     raise Exception("Failed to initialize Gemini AI")
 
 # Initialize FastAPI
-app = FastAPI()
+app = FastAPI(
+    title="Medical Analysis API",
+    description="API for analyzing medical PDF documents using Google Gemini AI",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
 logger.info("FastAPI application initialized")
 
 # Add CORS middleware
@@ -75,6 +81,29 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 logger.info("CORS middleware configured")
+
+@app.get("/")
+async def root():
+    """
+    Root endpoint that returns API information.
+    """
+    return {
+        "message": "Medical Analysis API is running",
+        "version": "1.0.0",
+        "endpoints": {
+            "/": "This information",
+            "/docs": "API documentation (Swagger UI)",
+            "/redoc": "API documentation (ReDoc)",
+            "/analyze": "POST endpoint for analyzing medical PDFs"
+        }
+    }
+
+@app.get("/health")
+async def health_check():
+    """
+    Health check endpoint to verify the service is running.
+    """
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 @app.post("/analyze")
 async def analyze_pdf(file: UploadFile = File(...)):
