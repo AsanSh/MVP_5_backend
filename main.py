@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pdfplumber
-from openai import OpenAI
+import openai
 import os
 from dotenv import load_dotenv
 import io
@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 logger.info("Environment variables loaded")
 
 # Initialize FastAPI
@@ -47,23 +48,10 @@ async def analyze_pdf(file: UploadFile = File(...)):
             logger.error(f"[{request_id}] Invalid file type: {file.filename}")
             raise HTTPException(status_code=400, detail="File must be a PDF")
 
-        # Initialize OpenAI client
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
+        # Verify OpenAI API key
+        if not openai.api_key:
             logger.error(f"[{request_id}] OpenAI API key not found in environment variables")
             raise HTTPException(status_code=500, detail="OpenAI API key not configured")
-        
-        logger.info(f"[{request_id}] Initializing OpenAI client")
-        try:
-            client = OpenAI(
-                api_key=api_key,
-                timeout=60.0  # Increase timeout to 60 seconds
-            )
-            logger.info(f"[{request_id}] OpenAI client initialized successfully")
-        except Exception as e:
-            logger.error(f"[{request_id}] Failed to initialize OpenAI client: {str(e)}")
-            logger.error(f"[{request_id}] Traceback: {traceback.format_exc()}")
-            raise HTTPException(status_code=500, detail="Failed to initialize OpenAI client")
 
         # Read file contents
         try:
@@ -103,7 +91,7 @@ async def analyze_pdf(file: UploadFile = File(...)):
         # Send to OpenAI GPT
         try:
             logger.info(f"[{request_id}] Sending request to OpenAI API")
-            response = client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {
@@ -120,7 +108,7 @@ async def analyze_pdf(file: UploadFile = File(...)):
             )
             logger.info(f"[{request_id}] Successfully received response from OpenAI API")
             
-            result = response.choices[0].message.content
+            result = response.choices[0].message["content"]
             logger.info(f"[{request_id}] Analysis completed successfully")
             return JSONResponse(content={"analysis": result})
             
