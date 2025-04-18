@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pdfplumber
-import openai
+from openai import OpenAI
 import os
 from dotenv import load_dotenv
 import io
@@ -20,8 +20,16 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
 logger.info("Environment variables loaded")
+
+# Initialize OpenAI client
+try:
+    client = OpenAI()
+    logger.info("OpenAI client initialized successfully")
+except Exception as e:
+    logger.error(f"Failed to initialize OpenAI client: {str(e)}")
+    logger.error(f"Traceback: {traceback.format_exc()}")
+    raise Exception("Failed to initialize OpenAI client")
 
 # Initialize FastAPI
 app = FastAPI()
@@ -47,11 +55,6 @@ async def analyze_pdf(file: UploadFile = File(...)):
         if not file.filename.endswith('.pdf'):
             logger.error(f"[{request_id}] Invalid file type: {file.filename}")
             raise HTTPException(status_code=400, detail="File must be a PDF")
-
-        # Verify OpenAI API key
-        if not openai.api_key:
-            logger.error(f"[{request_id}] OpenAI API key not found in environment variables")
-            raise HTTPException(status_code=500, detail="OpenAI API key not configured")
 
         # Read file contents
         try:
@@ -91,7 +94,7 @@ async def analyze_pdf(file: UploadFile = File(...)):
         # Send to OpenAI GPT
         try:
             logger.info(f"[{request_id}] Sending request to OpenAI API")
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {
@@ -108,7 +111,7 @@ async def analyze_pdf(file: UploadFile = File(...)):
             )
             logger.info(f"[{request_id}] Successfully received response from OpenAI API")
             
-            result = response.choices[0].message["content"]
+            result = response.choices[0].message.content
             logger.info(f"[{request_id}] Analysis completed successfully")
             return JSONResponse(content={"analysis": result})
             
