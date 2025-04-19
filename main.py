@@ -166,7 +166,7 @@ async def analyze_pdf(file: UploadFile = File(...)):
 
             # Try chat completion
             chat = model.start_chat(history=[])
-            response = chat.send_message(prompt + pdf_text, timeout=60)  # Add timeout
+            response = chat.send_message(prompt + pdf_text)
             
             if not response.text:
                 raise ValueError("Empty response received from Gemini")
