@@ -30,8 +30,8 @@ try:
 
     genai.configure(api_key=GOOGLE_API_KEY)
 
-    # ✅ Явно указываем стабильную версию API
-    model = genai.GenerativeModel("gemini-pro", model_name="models/gemini-pro")
+    # ✅ Используем только model_name
+    model = genai.GenerativeModel(model_name="gemini-pro")
     logger.info("Gemini AI initialized successfully")
 
 except Exception as e:
@@ -130,8 +130,8 @@ async def test_gemini(text: str = "Привет, Gemini!"):
     """
     logger.info(f"Testing Gemini with text: '{text}'")
     try:
-        # ✅ Явно указываем стабильную версию API и имя модели
-        model = genai.GenerativeModel("gemini-pro", model_name="models/gemini-pro")
+        # ✅ Используем только model_name
+        model = genai.GenerativeModel(model_name="gemini-pro")
         response = model.generate_content(text)
         if response and response.text:
             logger.info(f"Gemini test successful, response: '{response.text[:50]}...'")
