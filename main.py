@@ -30,7 +30,8 @@ try:
 
     genai.configure(api_key=GOOGLE_API_KEY)
 
-    model = genai.GenerativeModel("gemini-pro")  # ✅ простая инициализация без config
+    # ✅ Изменяем название модели на ту, которая поддерживает обработку текста
+    model = genai.GenerativeModel("gemini-pro")
     logger.info("Gemini AI initialized successfully")
 
 except Exception as e:
