@@ -159,18 +159,29 @@ async def analyze_pdf(file: UploadFile = File(...)):
 
 Анализ:
 """
+            # Check text length and truncate if necessary
+            if len(pdf_text) > 30000:  # Gemini's approximate token limit
+                logger.warning(f"[{request_id}] Text too long ({len(pdf_text)} chars), truncating...")
+                pdf_text = pdf_text[:30000] + "\n...[текст был сокращен из-за длины]..."
+
+            # Try chat completion
             chat = model.start_chat(history=[])
-            response = chat.send_message(prompt + pdf_text)
+            response = chat.send_message(prompt + pdf_text, timeout=60)  # Add timeout
+            
+            if not response.text:
+                raise ValueError("Empty response received from Gemini")
+                
             logger.info(f"[{request_id}] Successfully received response from Gemini AI")
-            
-            result = response.text
-            logger.info(f"[{request_id}] Analysis completed successfully")
-            return JSONResponse(content={"analysis": result})
-            
+            return JSONResponse(content={"analysis": response.text})
+
         except Exception as e:
-            logger.error(f"[{request_id}] Error calling Gemini AI: {str(e)}")
+            error_msg = str(e)
+            logger.error(f"[{request_id}] Error in Gemini AI call: {error_msg}")
             logger.error(f"[{request_id}] Traceback: {traceback.format_exc()}")
-            raise HTTPException(status_code=500, detail="Error processing the analysis")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error analyzing medical data: {error_msg}"
+            )
 
     except HTTPException as he:
         logger.error(f"[{request_id}] HTTPException: {str(he.detail)}")
