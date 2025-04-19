@@ -30,7 +30,7 @@ try:
 
     genai.configure(api_key=GOOGLE_API_KEY)
 
-    # ✅ Изменяем название модели на ту, которая поддерживает обработку текста
+    # ✅ Используем модель gemini-pro для обработки текста
     model = genai.GenerativeModel("gemini-pro")
     logger.info("Gemini AI initialized successfully")
 
@@ -65,7 +65,8 @@ async def root():
             "/": "This information",
             "/docs": "Swagger UI",
             "/redoc": "ReDoc UI",
-            "/analyze": "POST endpoint for medical PDF analysis"
+            "/analyze": "POST endpoint for medical PDF analysis",
+            "/test_gemini": "POST endpoint for testing Gemini with text"
         }
     }
 
@@ -120,3 +121,24 @@ async def analyze_pdf(file: UploadFile = File(...)):
         logger.error(f"[{request_id}] Error: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error analyzing medical data: {str(e)}")
+
+@app.post("/test_gemini")
+async def test_gemini(text: str = "Привет, Gemini!"):
+    """
+    Эндпоинт для проверки базовой работы с Gemini API и текстовыми запросами.
+    Отправляет простой текстовый запрос и возвращает ответ.
+    """
+    logger.info(f"Testing Gemini with text: '{text}'")
+    try:
+        model = genai.GenerativeModel("gemini-pro")
+        response = model.generate_content(text)
+        if response and response.text:
+            logger.info(f"Gemini test successful, response: '{response.text[:50]}...'")
+            return JSONResponse(content={"response": response.text})
+        else:
+            logger.warning("Gemini test returned an empty response.")
+            raise HTTPException(status_code=500, detail="Empty response from Gemini")
+    except Exception as e:
+        logger.error(f"Error during Gemini test: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error testing Gemini: {str(e)}")
