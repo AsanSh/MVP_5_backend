@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import io
 import logging
 import traceback
+from google.generativeai import generative_models
 from datetime import datetime
 
 # Logging
@@ -28,7 +29,7 @@ try:
     if not GOOGLE_API_KEY:
         raise ValueError("GOOGLE_API_KEY not found in environment variables")
 
-    genai.configure(api_key=GOOGLE_API_KEY)
+    genai.configure(api_key=GOOGLE_API_KEY, api_version="v1")
 
     # ✅ Используем только model_name
     model = genai.GenerativeModel(model_name="gemini-pro")
@@ -55,6 +56,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/list_models")
+async def list_available_models():
+    try:
+        model_service = generative_models.GenerativeModelServiceClient()
+        parent = f"projects/{os.getenv('GOOGLE_CLOUD_PROJECT')}/locations/us-central1"  # 👈 Используем переменную окружения
+        response = model_service.list_models(parent=parent)
+        models = [{"name": model.name, "methods": model.supported_generation_methods} for model in response.model]
+        return JSONResponse(content={"available_models": models})
+    except Exception as e:
+        logger.error(f"Error listing models: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @app.get("/")
 async def root():
