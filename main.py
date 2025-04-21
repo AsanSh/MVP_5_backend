@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 import io
 import logging
 import traceback
-from google.generativeai import generative_models
 from datetime import datetime
+from google.generativeai import generative_models
 
 # Logging
 logging.basicConfig(
@@ -29,9 +29,8 @@ try:
     if not GOOGLE_API_KEY:
         raise ValueError("GOOGLE_API_KEY not found in environment variables")
 
-    genai.configure(api_key=GOOGLE_API_KEY, api_version="v1")
+    genai.configure(api_key=GOOGLE_API_KEY)  # 👈 Удалили api_version
 
-    # ✅ Используем только model_name
     model = genai.GenerativeModel(model_name="gemini-pro")
     logger.info("Gemini AI initialized successfully")
 
@@ -61,7 +60,7 @@ app.add_middleware(
 async def list_available_models():
     try:
         model_service = generative_models.GenerativeModelServiceClient()
-        parent = f"projects/{os.getenv('GOOGLE_CLOUD_PROJECT')}/locations/us-central1"  # 👈 Используем переменную окружения
+        parent = f"projects/{os.getenv('GOOGLE_CLOUD_PROJECT')}/locations/us-central1"
         response = model_service.list_models(parent=parent)
         models = [{"name": model.name, "methods": model.supported_generation_methods} for model in response.model]
         return JSONResponse(content={"available_models": models})
@@ -79,7 +78,8 @@ async def root():
             "/docs": "Swagger UI",
             "/redoc": "ReDoc UI",
             "/analyze": "POST endpoint for medical PDF analysis",
-            "/test_gemini": "POST endpoint for testing Gemini with text"
+            "/test_gemini": "POST endpoint for testing Gemini with text",
+            "/list_models": "GET endpoint to list available Gemini models"
         }
     }
 
@@ -143,7 +143,6 @@ async def test_gemini(text: str = "Привет, Gemini!"):
     """
     logger.info(f"Testing Gemini with text: '{text}'")
     try:
-        # ✅ Используем только model_name
         model = genai.GenerativeModel(model_name="gemini-pro")
         response = model.generate_content(text)
         if response and response.text:
